@@ -6,7 +6,7 @@ from team.buttons import get_batting_buttons, get_bowling_buttons, get_live_scor
 from team.scorecard import scorecard_gen
 from team.timers import game_timer
 from config import (
-    LIVE_SCORE_CHANNEL_LINK, UPDATES_LINK, SUPPORT_LINK, 
+    LIVE_SCORE_LINK, UPDATES_LINK, SUPPORT_LINK, 
     OWNER_LINK, BOT_USERNAME, WICKET_VIDEO_URL, OUT_VIDEO_URL
 )
 import asyncio
