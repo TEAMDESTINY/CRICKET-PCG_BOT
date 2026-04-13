@@ -3,8 +3,8 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, 
 from pyrogram.enums import ButtonStyle
 from config import (
     IMAGE_URL, GAME_INSTRUCTIONS_IMAGE_URL,
-    UPDATES_LINK, SUPPORT_LINK, PLAY_ZONE_LINK, LIVE_SCORE_LINK,
-    OWNER_LINK, BOT_USERNAME
+    UPDATES_LINK, SUPPORT_LINK, PLAYZONE_LINK, LIVE_SCORE_LINK,
+    OWNER_LINK, BOT_USERNAME, WELCOME_MESSAGE, HELP_MESSAGE
 )
 
 # ========== MESSAGES ==========
