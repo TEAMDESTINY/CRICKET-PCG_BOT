@@ -14,6 +14,12 @@ OWNER_LINK = "https://t.me/oye_sparsh"
 # ========== BOT TOKEN ==========
 BOT_TOKEN = "8628663860:AAHi_F0pBNLSzJlclUpJ4M3D2EtoxYt7Nmg"
 
+# ========== OWNER ID - ADD THIS LINE ==========
+OWNER_ID = 6572893382
+
+# ========== OWNER / DEVELOPER LINK ==========
+OWNER_LINK = "https://t.me/oye_sparsh"
+
 # ========== GAME INSTRUCTIONS IMAGE ==========
 GAME_INSTRUCTIONS_IMAGE_URL = "https://files.catbox.moe/iq4758.jpg"
 
