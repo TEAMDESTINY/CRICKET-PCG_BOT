@@ -1,3 +1,4 @@
+import logging
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, CallbackQuery
 from pyrogram.enums import ButtonStyle
@@ -6,6 +7,13 @@ from config import (
     UPDATES_LINK, SUPPORT_LINK, PLAYZONE_LINK, LIVE_SCORE_LINK,
     OWNER_LINK, BOT_USERNAME, WELCOME_MESSAGE, HELP_MESSAGE
 )
+
+# Setup logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ========== MESSAGES ==========
 
@@ -87,6 +95,7 @@ AUCTION_MESSAGE = """
 
 def start_keyboard():
     """Start command ke neeche buttons (DM mein)"""
+    logger.debug("Creating start_keyboard")
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("📢 Updates", url=UPDATES_LINK),
@@ -102,6 +111,7 @@ def start_keyboard():
 
 def game_instructions_keyboard():
     """Game instructions ke neeche buttons (Solo, Team, Auction, Home)"""
+    logger.debug("Creating game_instructions_keyboard")
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🎯 Solo Play", callback_data="solo_play", style=ButtonStyle.PRIMARY),
@@ -116,6 +126,7 @@ def game_instructions_keyboard():
 
 def help_keyboard():
     """Help command ke neeche buttons"""
+    logger.debug("Creating help_keyboard")
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("➕ ADD ME TO GROUP", callback_data="add_to_group", style=ButtonStyle.SUCCESS),
@@ -133,6 +144,7 @@ def help_keyboard():
 
 def back_keyboard():
     """Back button for returning to game instructions"""
+    logger.debug("Creating back_keyboard")
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("◀️ BACK", callback_data="back_to_game_instructions", style=ButtonStyle.DEFAULT)]
     ])
@@ -140,6 +152,7 @@ def back_keyboard():
 
 def team_mode_keyboard():
     """Team mode menu buttons"""
+    logger.debug("Creating team_mode_keyboard")
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("START", callback_data="team_start", style=ButtonStyle.SUCCESS),
@@ -157,100 +170,167 @@ def team_mode_keyboard():
     ])
 
 
-# ========== HANDLERS ==========
+# ========== HANDLERS WITH DEBUG ==========
 
 @Client.on_message(filters.command("start") & filters.private)
 async def start_private(client: Client, message: Message):
     """/start command in private chat (DM)"""
-    await client.send_photo(
-        chat_id=message.chat.id,
-        photo=IMAGE_URL,
-        caption=WELCOME_CAPTION,
-        reply_markup=start_keyboard()
-    )
+    try:
+        logger.info(f"===== /start COMMAND RECEIVED =====")
+        logger.info(f"User: {message.from_user.id} - {message.from_user.first_name}")
+        logger.info(f"Chat ID: {message.chat.id}")
+        logger.info(f"Message text: {message.text}")
+        
+        logger.debug(f"Sending photo to user: {message.chat.id}")
+        logger.debug(f"Photo URL: {IMAGE_URL}")
+        
+        await client.send_photo(
+            chat_id=message.chat.id,
+            photo=IMAGE_URL,
+            caption=WELCOME_CAPTION,
+            reply_markup=start_keyboard()
+        )
+        
+        logger.info(f"===== /start COMMAND SUCCESS =====")
+    except Exception as e:
+        logger.error(f"===== /start COMMAND FAILED =====")
+        logger.error(f"Error: {e}")
+        logger.exception("Full traceback:")
+        await message.reply(f"❌ Error: {str(e)}")
 
 
 @Client.on_message(filters.command("start") & filters.group)
 async def start_group(client: Client, message: Message):
     """/start command in group chat"""
-    await message.reply(
-        "🏏 **Cricket Bot Active!**\n\n"
-        "Use /create_team to start a match!\n"
-        "Use /help for all commands."
-    )
+    try:
+        logger.info(f"===== /start COMMAND IN GROUP =====")
+        logger.info(f"Group ID: {message.chat.id}")
+        logger.info(f"User: {message.from_user.id}")
+        
+        await message.reply(
+            "🏏 **Cricket Bot Active!**\n\n"
+            "Use /create_team to start a match!\n"
+            "Use /help for all commands."
+        )
+        
+        logger.info(f"===== /start GROUP COMMAND SUCCESS =====")
+    except Exception as e:
+        logger.error(f"===== /start GROUP COMMAND FAILED =====")
+        logger.error(f"Error: {e}")
+        await message.reply(f"❌ Error: {str(e)}")
 
 
 @Client.on_message(filters.command("help"))
 async def help_command(client: Client, message: Message):
     """/help command - shows help message with buttons"""
-    await message.reply_text(HELP_MESSAGE, reply_markup=help_keyboard())
+    try:
+        logger.info(f"===== /help COMMAND RECEIVED =====")
+        logger.info(f"User: {message.from_user.id}")
+        logger.info(f"Chat ID: {message.chat.id}")
+        
+        await message.reply_text(HELP_MESSAGE, reply_markup=help_keyboard())
+        
+        logger.info(f"===== /help COMMAND SUCCESS =====")
+    except Exception as e:
+        logger.error(f"===== /help COMMAND FAILED =====")
+        logger.error(f"Error: {e}")
+        await message.reply(f"❌ Error: {str(e)}")
 
 
-# ========== CALLBACKS ==========
+# ========== CALLBACKS WITH DEBUG ==========
 
 @Client.on_callback_query()
 async def start_help_callbacks(client: Client, callback_query: CallbackQuery):
     data = callback_query.data
+    logger.info(f"===== CALLBACK RECEIVED =====")
+    logger.info(f"Callback data: {data}")
+    logger.info(f"User: {callback_query.from_user.id}")
     
-    # Game Instructions - Show main menu with Solo/Team/Auction
-    if data == "game_instructions":
-        await callback_query.message.delete()
-        await callback_query.message.reply_photo(
-            photo=GAME_INSTRUCTIONS_IMAGE_URL,
-            caption=WELCOME_CAPTION,
-            reply_markup=game_instructions_keyboard()
-        )
-        await callback_query.answer()
-    
-    # Solo Play Menu
-    elif data == "solo_play":
-        await callback_query.message.edit_text(
-            SOLO_MODE_MESSAGE,
-            reply_markup=back_keyboard()
-        )
-        await callback_query.answer()
-    
-    # Team Play Menu
-    elif data == "team_play":
-        await callback_query.message.edit_text(
-            TEAM_MODE_MESSAGE,
-            reply_markup=team_mode_keyboard()
-        )
-        await callback_query.answer()
-    
-    # Auction Menu
-    elif data == "auction":
-        await callback_query.message.edit_text(
-            AUCTION_MESSAGE,
-            reply_markup=back_keyboard()
-        )
-        await callback_query.answer()
-    
-    # Home - Back to main start menu
-    elif data == "home":
-        await callback_query.message.delete()
-        await callback_query.message.reply_photo(
-            photo=IMAGE_URL,
-            caption=WELCOME_CAPTION,
-            reply_markup=start_keyboard()
-        )
-        await callback_query.answer()
-    
-    # Back to Game Instructions
-    elif data == "back_to_game_instructions":
-        await callback_query.message.edit_media(
-            media=InputMediaPhoto(
-                media=GAME_INSTRUCTIONS_IMAGE_URL,
-                caption=WELCOME_CAPTION
-            ),
-            reply_markup=game_instructions_keyboard()
-        )
-        await callback_query.answer()
-    
-    # Add to Group
-    elif data == "add_to_group":
-        await callback_query.answer("🔗 Use the button below to add me to your group!")
-    
-    # Team mode callbacks (will be implemented later)
-    elif data in ["team_start", "team_add", "team_remove", "team_startgame", "team_bowling", "team_batting"]:
-        await callback_query.answer("⚙️ This feature is coming soon! Use commands in group.", show_alert=True)
+    try:
+        # Game Instructions - Show main menu with Solo/Team/Auction
+        if data == "game_instructions":
+            logger.debug("Processing game_instructions callback")
+            await callback_query.message.delete()
+            await callback_query.message.reply_photo(
+                photo=GAME_INSTRUCTIONS_IMAGE_URL,
+                caption=WELCOME_CAPTION,
+                reply_markup=game_instructions_keyboard()
+            )
+            await callback_query.answer()
+            logger.debug("game_instructions callback completed")
+        
+        # Solo Play Menu
+        elif data == "solo_play":
+            logger.debug("Processing solo_play callback")
+            await callback_query.message.edit_text(
+                SOLO_MODE_MESSAGE,
+                reply_markup=back_keyboard()
+            )
+            await callback_query.answer()
+            logger.debug("solo_play callback completed")
+        
+        # Team Play Menu
+        elif data == "team_play":
+            logger.debug("Processing team_play callback")
+            await callback_query.message.edit_text(
+                TEAM_MODE_MESSAGE,
+                reply_markup=team_mode_keyboard()
+            )
+            await callback_query.answer()
+            logger.debug("team_play callback completed")
+        
+        # Auction Menu
+        elif data == "auction":
+            logger.debug("Processing auction callback")
+            await callback_query.message.edit_text(
+                AUCTION_MESSAGE,
+                reply_markup=back_keyboard()
+            )
+            await callback_query.answer()
+            logger.debug("auction callback completed")
+        
+        # Home - Back to main start menu
+        elif data == "home":
+            logger.debug("Processing home callback")
+            await callback_query.message.delete()
+            await callback_query.message.reply_photo(
+                photo=IMAGE_URL,
+                caption=WELCOME_CAPTION,
+                reply_markup=start_keyboard()
+            )
+            await callback_query.answer()
+            logger.debug("home callback completed")
+        
+        # Back to Game Instructions
+        elif data == "back_to_game_instructions":
+            logger.debug("Processing back_to_game_instructions callback")
+            await callback_query.message.edit_media(
+                media=InputMediaPhoto(
+                    media=GAME_INSTRUCTIONS_IMAGE_URL,
+                    caption=WELCOME_CAPTION
+                ),
+                reply_markup=game_instructions_keyboard()
+            )
+            await callback_query.answer()
+            logger.debug("back_to_game_instructions callback completed")
+        
+        # Add to Group
+        elif data == "add_to_group":
+            logger.debug("Processing add_to_group callback")
+            await callback_query.answer("🔗 Use the button below to add me to your group!")
+        
+        # Team mode callbacks (will be implemented later)
+        elif data in ["team_start", "team_add", "team_remove", "team_startgame", "team_bowling", "team_batting"]:
+            logger.debug(f"Processing {data} callback (coming soon)")
+            await callback_query.answer("⚙️ This feature is coming soon! Use commands in group.", show_alert=True)
+        
+        else:
+            logger.warning(f"Unknown callback data: {data}")
+            await callback_query.answer("Unknown command!", show_alert=True)
+            
+    except Exception as e:
+        logger.error(f"===== CALLBACK FAILED =====")
+        logger.error(f"Callback data: {data}")
+        logger.error(f"Error: {e}")
+        logger.exception("Full traceback:")
+        await callback_query.answer(f"❌ Error: {str(e)}", show_alert=True)
