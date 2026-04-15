@@ -12,7 +12,7 @@ BOT_USERNAME = "testingpcgbot"
 OWNER_LINK = "https://t.me/oye_sparsh"
 
 # ========== BOT TOKEN ==========
-BOT_TOKEN = "8628663860:AAHi_F0pBNLSzJlclUpJ4M3D2EtoxYt7Nmg"
+BOT_TOKEN = "8628663860:AAEAND6Ng7jZhoLd0nQLsukVqWVbpZ4UuRM"
 
 # ========== OWNER ID - ADD THIS LINE ==========
 OWNER_ID = 6572893382
