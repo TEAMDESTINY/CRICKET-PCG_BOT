@@ -2,67 +2,64 @@
 import asyncio
 import logging
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from config import BOT_TOKEN, BOT_USERNAME, OWNER_ID, IMAGE_URL
+from config import BOT_TOKEN
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create bot client
 app = Client("cricket_bot", bot_token=BOT_TOKEN)
 
-# ========== HANDLERS ==========
+# ========== IMPORT ALL HANDLERS ==========
 
-@app.on_message(filters.command("start") & filters.private)
-async def start_private(client: Client, message: Message):
-    """/start command in private chat"""
-    logger.info(f"Start received from {message.from_user.id}")
-    
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("📢 Updates", url="https://t.me/your_updates"),
-            InlineKeyboardButton("🔗 Support", url="https://t.me/your_support")
-        ],
-        [
-            InlineKeyboardButton("➕ Add me to group", url=f"https://t.me/{BOT_USERNAME}?startgroup=true")
-        ]
-    ])
-    
-    await message.reply_photo(
-        photo=IMAGE_URL,
-        caption="🏏 **Welcome to Cricket Master Bot!**\n\nCricket Game Bot provide Solo play and Team play option available.",
-        reply_markup=keyboard
-    )
+# DM/Help handlers
+from handlers.start_help import start_private, start_group, help_command
 
-@app.on_message(filters.command("start") & filters.group)
-async def start_group(client: Client, message: Message):
-    """/start command in group"""
-    await message.reply("🏏 **Cricket Bot Active!**\n\nUse /create_team to start a match!")
+# Team mode handlers
+from team.host import create_team, end_match, show_teams, set_team_name, set_overs, show_host
+from team.team_manager import add_to_team_a, add_to_team_b, remove_from_team_a, remove_from_team_b, show_teams_command
+from team.commands import select_bowler, select_batsman, swap_teams
 
-@app.on_message(filters.command("help"))
-async def help_command(client: Client, message: Message):
-    """/help command"""
-    await message.reply("Send /start to begin!")
+# ========== REGISTER DM/GROUP COMMANDS ==========
 
-@app.on_message(filters.command("create_team"))
-async def create_team(client: Client, message: Message):
-    """/create_team command"""
-    await message.reply(f"🎮 {message.from_user.first_name} is now the game host!")
+# Start commands
+app.on_message(filters.command("start") & filters.private)(start_private)
+app.on_message(filters.command("start") & filters.group)(start_group)
 
-@app.on_message(filters.command("add_A"))
-async def add_team_a(client: Client, message: Message):
-    """/add_A command"""
-    await message.reply(f"✅ Added to Team A")
+# Help command
+app.on_message(filters.command("help"))(help_command)
 
-@app.on_message(filters.command("add_B"))
-async def add_team_b(client: Client, message: Message):
-    """/add_B command"""
-    await message.reply(f"✅ Added to Team B")
+# ========== REGISTER TEAM COMMANDS ==========
+
+# Host commands
+app.on_message(filters.command("create_team") & filters.group)(create_team)
+app.on_message(filters.command("end_match") & filters.group)(end_match)
+app.on_message(filters.command("teams") & filters.group)(show_teams)
+app.on_message(filters.command("setname") & filters.group)(set_team_name)
+app.on_message(filters.command("setovers") & filters.group)(set_overs)
+app.on_message(filters.command("host") & filters.group)(show_host)
+
+# Team management commands
+app.on_message(filters.command("add_A") & filters.group)(add_to_team_a)
+app.on_message(filters.command("add_B") & filters.group)(add_to_team_b)
+app.on_message(filters.command("remove_A") & filters.group)(remove_from_team_a)
+app.on_message(filters.command("remove_B") & filters.group)(remove_from_team_b)
+app.on_message(filters.command("show_teams") & filters.group)(show_teams_command)
+
+# Game play commands
+app.on_message(filters.command("bowling") & filters.group)(select_bowler)
+app.on_message(filters.command("batting") & filters.group)(select_batsman)
+app.on_message(filters.command("swap") & filters.group)(swap_teams)
+
+# ========== CALLBACK QUERY HANDLER ==========
+from handlers.callbacks import handle_callbacks
+app.on_callback_query()(handle_callbacks)
 
 # ========== MAIN ==========
 
 def main():
-    logger.info("Starting Cricket Bot...")
+    logger.info("🚀 Starting Cricket Master Bot...")
+    logger.info("✅ All handlers registered!")
     app.run()
 
 if __name__ == "__main__":
