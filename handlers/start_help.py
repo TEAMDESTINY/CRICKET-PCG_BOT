@@ -15,24 +15,6 @@ WELCOME_CAPTION = """
 Cricket Game Bot provide Solo play and Team play option available.
 """
 
-HELP_MESSAGE = """
-Hello! 🤗 Need some help with Cricket Master Bot? Here are some tips to get you started:
-
-🔹 **Join a Match:** Ready to play? Start a new match or join an existing one with your friends. Just type /start in groups.
-
-🔹 **Manage Your Team:** Set up your lineup, choose your captain, and get ready to play. Use /startgame to get started.
-
-🔹 **Game Instructions:** New to the game? Type help to learn how to play and master the game.
-
-🔹 **Feedback:** We value your input! Share your /feedback with us in the support group.
-
-🔹 **Help and Support:** If you need assistance, visit our support group or type /help.
-
-👉 For a list of all available commands, click the "🎯 𝐆𝐚𝐦𝐞 𝐈𝐧𝐬𝐭𝐫𝐮𝐜𝐭𝐢𝐨𝐧𝐬" button below.
-
-Enjoy your time with Cricket Master Bot! 🏏🚀
-"""
-
 SOLO_MODE_MESSAGE = """
 🏏 **Solo Mode:**
 
@@ -109,7 +91,7 @@ def start_keyboard():
         [
             InlineKeyboardButton("📢 Updates", url=UPDATES_LINK),
             InlineKeyboardButton("🔗 Support", url=SUPPORT_LINK),
-            InlineKeyboardButton("🏏 Play Zone", url=PLAY_ZONE_LINK),
+            InlineKeyboardButton("🏏 Play Zone", url=PLAYZONE_LINK),
             InlineKeyboardButton("📊 Live Score", url=LIVE_SCORE_LINK)
         ],
         [
