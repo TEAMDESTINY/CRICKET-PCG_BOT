@@ -12,7 +12,7 @@ from config import BOT_TOKEN, BOT_USERNAME, OWNER_ID
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG  # DEBUG mode for more info
 )
 logger = logging.getLogger(__name__)
 
@@ -29,11 +29,12 @@ class CricketBot:
     """Main bot class"""
     
     def __init__(self):
+        # Pyrogram will auto-detect API credentials from telegram.org
+        # Sirf bot_token do, baaki auto handle hoga
         self.app = Client(
             "cricket_bot",
-            bot_token=BOT_TOKEN,
-            api_id=6,  # Telegram API ID (get from my.telegram.org)
-            api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e"  # Telegram API Hash
+            bot_token=BOT_TOKEN
+            # API ID and Hash optional - Pyrogram handles automatically
         )
     
     async def start(self):
@@ -41,17 +42,17 @@ class CricketBot:
         logger.info(f"Starting {BOT_INFO['name']} v{BOT_INFO['version']}...")
         
         # Import all handlers to register them
-        # Handlers
-        import handlers.start_help
-        import handlers.callbacks
-        import handlers.admin
-        
-        # Team mode handlers
-        import team.host
-        import team.team_manager
-        import team.commands
-        
-        logger.info("All handlers loaded successfully!")
+        try:
+            import handlers.start_help
+            import handlers.callbacks
+            import handlers.admin
+            import team.host
+            import team.team_manager
+            import team.commands
+            logger.info("All handlers loaded successfully!")
+        except Exception as e:
+            logger.error(f"Failed to load handlers: {e}")
+            raise
         
         # Start the bot
         await self.app.start()
@@ -61,8 +62,7 @@ class CricketBot:
         try:
             await self.app.send_message(
                 OWNER_ID,
-                f"✅ {BOT_INFO['name']} v{BOT_INFO['version']} has started!\n"
-                f"🕐 Time: {asyncio.get_event_loop().time()}"
+                f"✅ {BOT_INFO['name']} v{BOT_INFO['version']} has started!"
             )
         except Exception as e:
             logger.warning(f"Could not send startup message to owner: {e}")
