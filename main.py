@@ -1,65 +1,69 @@
 #!/usr/bin/env python3
 import asyncio
 import logging
-import os
-from dotenv import load_dotenv
-from pyrogram import Client, idle
-from config import BOT_TOKEN, BOT_USERNAME, OWNER_ID
+from pyrogram import Client, filters
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from config import BOT_TOKEN, BOT_USERNAME, OWNER_ID, IMAGE_URL
 
-load_dotenv()
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG
-)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Get API credentials from .env
-API_ID = int(os.getenv("API_ID", "0"))
-API_HASH = os.getenv("API_HASH", "")
+# Create bot client
+app = Client("cricket_bot", bot_token=BOT_TOKEN)
 
-class CricketBot:
-    def __init__(self):
-        if API_ID == 0 or not API_HASH:
-            logger.error("API_ID and API_HASH are required!")
-            logger.error("Get them from https://my.telegram.org")
-            raise ValueError("Missing API credentials")
-        
-        self.app = Client(
-            "cricket_bot",
-            api_id=API_ID,
-            api_hash=API_HASH,
-            bot_token=BOT_TOKEN
-        )
+# ========== HANDLERS ==========
+
+@app.on_message(filters.command("start") & filters.private)
+async def start_private(client: Client, message: Message):
+    """/start command in private chat"""
+    logger.info(f"Start received from {message.from_user.id}")
     
-    async def start(self):
-        logger.info("Starting Cricket Master Bot...")
-        
-        import handlers.start_help
-        import handlers.callbacks
-        import handlers.admin
-        import team.host
-        import team.team_manager
-        import team.commands
-        
-        logger.info("All handlers loaded!")
-        await self.app.start()
-        logger.info(f"Bot @{BOT_USERNAME} is running!")
-        await idle()
-        await self.stop()
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("📢 Updates", url="https://t.me/your_updates"),
+            InlineKeyboardButton("🔗 Support", url="https://t.me/your_support")
+        ],
+        [
+            InlineKeyboardButton("➕ Add me to group", url=f"https://t.me/{BOT_USERNAME}?startgroup=true")
+        ]
+    ])
     
-    async def stop(self):
-        logger.info("Stopping bot...")
-        await self.app.stop()
+    await message.reply_photo(
+        photo=IMAGE_URL,
+        caption="🏏 **Welcome to Cricket Master Bot!**\n\nCricket Game Bot provide Solo play and Team play option available.",
+        reply_markup=keyboard
+    )
+
+@app.on_message(filters.command("start") & filters.group)
+async def start_group(client: Client, message: Message):
+    """/start command in group"""
+    await message.reply("🏏 **Cricket Bot Active!**\n\nUse /create_team to start a match!")
+
+@app.on_message(filters.command("help"))
+async def help_command(client: Client, message: Message):
+    """/help command"""
+    await message.reply("Send /start to begin!")
+
+@app.on_message(filters.command("create_team"))
+async def create_team(client: Client, message: Message):
+    """/create_team command"""
+    await message.reply(f"🎮 {message.from_user.first_name} is now the game host!")
+
+@app.on_message(filters.command("add_A"))
+async def add_team_a(client: Client, message: Message):
+    """/add_A command"""
+    await message.reply(f"✅ Added to Team A")
+
+@app.on_message(filters.command("add_B"))
+async def add_team_b(client: Client, message: Message):
+    """/add_B command"""
+    await message.reply(f"✅ Added to Team B")
+
+# ========== MAIN ==========
 
 def main():
-    bot = CricketBot()
-    try:
-        asyncio.run(bot.start())
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user")
-    except Exception as e:
-        logger.error(f"Bot crashed: {e}")
+    logger.info("Starting Cricket Bot...")
+    app.run()
 
 if __name__ == "__main__":
     main()
