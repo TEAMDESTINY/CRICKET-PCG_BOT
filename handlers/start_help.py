@@ -9,11 +9,7 @@ from config import (
     TEAM_ADD_VIDEO_URL, TEAM_REMOVE_VIDEO_URL, TEAM_STARTGAME_VIDEO_URL
 )
 
-# Setup logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ========== MESSAGES ==========
@@ -42,21 +38,16 @@ Ready to play? Let's see your skills on the field!
 """
 
 TEAM_MODE_MESSAGE = """
-🌟 **Members Adding:**
+**Members Adding:**
 
 /add_A - add members to team A
 /add_B - add members to team B
 
 Example: /add_A 1 or /add_A @username
 
-🌟 **Members Removing:**
+Use /create_team in your group to start a match!
 
-/remove_A - remove members from team A
-/remove_B - remove members from team B
-
-Example: /remove_A 2
-
-🌟 **Game Play Commands:**
+**Game Play Commands:**
 
 /startgame - to start the game
 /bowling - choose the bowling person
@@ -84,9 +75,8 @@ AUCTION_MESSAGE = """
 
 
 # ========== KEYBOARDS ==========
+
 def start_keyboard():
-    """Start command ke neeche buttons (DM mein) - Exactly like screenshot"""
-    logger.debug("Creating start_keyboard")
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("UPDATES", url=UPDATES_LINK),
@@ -103,8 +93,6 @@ def start_keyboard():
 
 
 def game_instructions_keyboard():
-    """Game instructions ke neeche buttons"""
-    logger.debug("Creating game_instructions_keyboard")
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("Solo Play", callback_data="solo_play"),
@@ -118,8 +106,6 @@ def game_instructions_keyboard():
 
 
 def help_keyboard():
-    """Help command ke neeche buttons"""
-    logger.debug("Creating help_keyboard")
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("ADD ME TO GROUP", callback_data="add_to_group"),
@@ -136,16 +122,12 @@ def help_keyboard():
 
 
 def back_keyboard():
-    """Back button for returning to game instructions"""
-    logger.debug("Creating back_keyboard")
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("BACK", callback_data="back_to_game_instructions")]
     ])
 
 
 def team_mode_keyboard():
-    """Team mode menu buttons"""
-    logger.debug("Creating team_mode_keyboard")
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton("START", callback_data="team_start"),
@@ -167,61 +149,37 @@ def team_mode_keyboard():
 
 @Client.on_message(filters.command("start") & filters.private)
 async def start_private(client: Client, message: Message):
-    """/start command in private chat (DM)"""
     try:
-        logger.info(f"Start received from {message.from_user.id}")
-        
         await client.send_photo(
             chat_id=message.chat.id,
             photo=IMAGE_URL,
             caption=WELCOME_CAPTION,
             reply_markup=start_keyboard()
         )
-        
-        logger.info("Start command success")
     except Exception as e:
-        logger.error(f"Start command failed: {e}")
-        await message.reply(f"Error: {str(e)}")
+        logger.error(f"Start failed: {e}")
+        await message.reply(f"Error: {e}")
 
 
 @Client.on_message(filters.command("start") & filters.group)
 async def start_group(client: Client, message: Message):
-    """/start command in group chat"""
-    try:
-        logger.info(f"Start in group from {message.from_user.id}")
-        
-        await message.reply(
-            "🏏 Cricket Bot Active!\n\n"
-            "Use /create_team to start a match!\n"
-            "Use /help for all commands."
-        )
-        
-        logger.info("Start group command success")
-    except Exception as e:
-        logger.error(f"Start group command failed: {e}")
-        await message.reply(f"Error: {str(e)}")
+    await message.reply(
+        "🏏 Cricket Bot Active!\n\n"
+        "Use /create_team to start a match!\n"
+        "Use /help for all commands."
+    )
 
 
 @Client.on_message(filters.command("help"))
 async def help_command(client: Client, message: Message):
-    """/help command"""
-    try:
-        logger.info(f"Help received from {message.from_user.id}")
-        
-        await message.reply_text(HELP_MESSAGE, reply_markup=help_keyboard())
-        
-        logger.info("Help command success")
-    except Exception as e:
-        logger.error(f"Help command failed: {e}")
-        await message.reply(f"Error: {str(e)}")
+    await message.reply_text(HELP_MESSAGE, reply_markup=help_keyboard())
 
 
-# ========== CALLBACKS ==========
+# ========== CALLBACKS - VIDEOS OPEN HONGE ==========
 
 @Client.on_callback_query()
 async def start_help_callbacks(client: Client, callback_query: CallbackQuery):
     data = callback_query.data
-    logger.info(f"Callback received: {data} from {callback_query.from_user.id}")
     
     try:
         # Game Instructions
@@ -283,52 +241,53 @@ async def start_help_callbacks(client: Client, callback_query: CallbackQuery):
         elif data == "add_to_group":
             await callback_query.answer("Use the button below to add me to your group!")
         
-        # Team mode video callbacks
+        # ========== TEAM MODE VIDEOS (Buttons pe tap karne se video khulegi) ==========
+        
         elif data == "team_start":
-            await callback_query.answer("Opening video...")
+            await callback_query.answer("Opening START guide...")
             await callback_query.message.reply_video(
                 video=TEAM_START_VIDEO_URL,
-                caption="START - Use /create_team in your group to begin!"
-            )
-        
-        elif data == "team_bowling":
-            await callback_query.answer("Opening video...")
-            await callback_query.message.reply_video(
-                video=TEAM_BOWLING_VIDEO_URL,
-                caption="BOWLING - Use /bowling command in group to select bowler!"
-            )
-        
-        elif data == "team_batting":
-            await callback_query.answer("Opening video...")
-            await callback_query.message.reply_video(
-                video=TEAM_BATTING_VIDEO_URL,
-                caption="BATTING - Use /batting command in group to select batsman!"
+                caption="📌 START - Use /create_team in your group to begin the match!"
             )
         
         elif data == "team_add":
-            await callback_query.answer("Opening video...")
+            await callback_query.answer("Opening ADD guide...")
             await callback_query.message.reply_video(
                 video=TEAM_ADD_VIDEO_URL,
-                caption="ADD PLAYERS - Use /add_A and /add_B commands in group!"
+                caption="📌 ADD - Use /add_A and /add_B commands to add players!"
             )
         
         elif data == "team_remove":
-            await callback_query.answer("Opening video...")
+            await callback_query.answer("Opening REMOVE guide...")
             await callback_query.message.reply_video(
                 video=TEAM_REMOVE_VIDEO_URL,
-                caption="REMOVE PLAYERS - Use /remove_A and /remove_B commands in group!"
+                caption="📌 REMOVE - Use /remove_A and /remove_B commands to remove players!"
             )
         
         elif data == "team_startgame":
-            await callback_query.answer("Opening video...")
+            await callback_query.answer("Opening START GAME guide...")
             await callback_query.message.reply_video(
                 video=TEAM_STARTGAME_VIDEO_URL,
-                caption="START GAME - Use /startgame command in group when teams are ready!"
+                caption="📌 START GAME - Use /startgame command when both teams are ready!"
+            )
+        
+        elif data == "team_bowling":
+            await callback_query.answer("Opening BOWLING guide...")
+            await callback_query.message.reply_video(
+                video=TEAM_BOWLING_VIDEO_URL,
+                caption="📌 BOWLING - Use /bowling command to select the bowler!"
+            )
+        
+        elif data == "team_batting":
+            await callback_query.answer("Opening BATTING guide...")
+            await callback_query.message.reply_video(
+                video=TEAM_BATTING_VIDEO_URL,
+                caption="📌 BATTING - Use /batting command to select the batsman!"
             )
         
         else:
             await callback_query.answer("Coming soon!", show_alert=True)
             
     except Exception as e:
-        logger.error(f"Callback failed: {data} - {e}")
-        await callback_query.answer(f"Error: {str(e)}", show_alert=True)
+        logger.error(f"Callback error: {data} - {e}")
+        await callback_query.answer(f"Error: {e}", show_alert=True)
