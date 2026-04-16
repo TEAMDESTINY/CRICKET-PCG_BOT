@@ -1,5 +1,5 @@
 from pyrogram import Client, filters
-from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from database.mongodb import db
 from team.game_engine import game_engine
 from team.buttons import get_batting_buttons, get_bowling_buttons, get_live_score_button
@@ -7,7 +7,10 @@ from team.scorecard import scorecard_gen
 from team.timers import game_timer
 from config import (
     LIVE_SCORE_LINK, UPDATES_LINK, SUPPORT_LINK, 
-    OWNER_LINK, BOT_USERNAME, WICKET_VIDEO_URL, OUT_VIDEO_URL
+    OWNER_LINK, BOT_USERNAME, WICKET_VIDEO_URL, OUT_VIDEO_URL,
+    IMAGE_URL, GAME_INSTRUCTIONS_IMAGE_URL,
+    TEAM_START_VIDEO_URL, TEAM_BOWLING_VIDEO_URL, TEAM_BATTING_VIDEO_URL,
+    TEAM_ADD_VIDEO_URL, TEAM_REMOVE_VIDEO_URL, TEAM_STARTGAME_VIDEO_URL
 )
 import asyncio
 
@@ -32,12 +35,10 @@ async def handle_callbacks(client: Client, callback_query: CallbackQuery):
     # ========== LIVE SCORE CALLBACK ==========
     elif data == "live_score":
         await callback_query.answer("📊 Opening Live Score Channel...")
-        # Just open channel link - no action needed, button handles URL
     
     # ========== BACK TO GROUP CALLBACK ==========
     elif data == "back_to_group":
         await callback_query.answer("🔙 Returning to group...")
-        # Button with URL handles this
     
     # ========== START/HELP CALLBACKS ==========
     elif data == "game_instructions":
@@ -61,24 +62,48 @@ async def handle_callbacks(client: Client, callback_query: CallbackQuery):
     elif data == "add_to_group":
         await callback_query.answer("➕ Use the button below to add me to your group!")
     
-    # ========== TEAM MODE CALLBACKS (from team menu) ==========
+    # ========== TEAM MODE VIDEO CALLBACKS (Video open honge) ==========
     elif data == "team_start":
-        await callback_query.answer("⚙️ Use /create_team in your group to start a match!", show_alert=True)
+        await callback_query.answer("🎬 Opening START guide...")
+        await callback_query.message.reply_video(
+            video=TEAM_START_VIDEO_URL,
+            caption="📌 START - Use /create_team in your group to begin the match!"
+        )
     
     elif data == "team_add":
-        await callback_query.answer("⚙️ Use /add_A and /add_B commands in your group!", show_alert=True)
+        await callback_query.answer("📋 Opening ADD guide...")
+        await callback_query.message.reply_video(
+            video=TEAM_ADD_VIDEO_URL,
+            caption="📌 ADD - Use /add_A and /add_B commands to add players!"
+        )
     
     elif data == "team_remove":
-        await callback_query.answer("⚙️ Use /remove_A and /remove_B commands in your group!", show_alert=True)
+        await callback_query.answer("🗑️ Opening REMOVE guide...")
+        await callback_query.message.reply_video(
+            video=TEAM_REMOVE_VIDEO_URL,
+            caption="📌 REMOVE - Use /remove_A and /remove_B commands to remove players!"
+        )
     
     elif data == "team_startgame":
-        await callback_query.answer("⚙️ Use /startgame command in your group after teams are ready!", show_alert=True)
+        await callback_query.answer("🚀 Opening START GAME guide...")
+        await callback_query.message.reply_video(
+            video=TEAM_STARTGAME_VIDEO_URL,
+            caption="📌 START GAME - Use /startgame command when both teams are ready!"
+        )
     
     elif data == "team_bowling":
-        await callback_query.answer("⚙️ Use /bowling command in your group!", show_alert=True)
+        await callback_query.answer("🎯 Opening BOWLING guide...")
+        await callback_query.message.reply_video(
+            video=TEAM_BOWLING_VIDEO_URL,
+            caption="📌 BOWLING - Use /bowling command to select the bowler!"
+        )
     
     elif data == "team_batting":
-        await callback_query.answer("⚙️ Use /batting command in your group!", show_alert=True)
+        await callback_query.answer("🏏 Opening BATTING guide...")
+        await callback_query.message.reply_video(
+            video=TEAM_BATTING_VIDEO_URL,
+            caption="📌 BATTING - Use /batting command to select the batsman!"
+        )
     
     else:
         await callback_query.answer("⚙️ Feature coming soon!")
@@ -92,14 +117,12 @@ async def handle_batting_callback(client: Client, callback_query: CallbackQuery,
     message = callback_query.message
     group_id = message.chat.id
     
-    # Get current match
     match = await db.get_match(group_id)
     if not match:
         await callback_query.answer("❌ No active game found!", show_alert=True)
         await message.delete()
         return
     
-    # Check if it's the batter's turn
     current_ball = match.get("current_ball", {})
     if not current_ball:
         await callback_query.answer("⏳ No active ball! Please wait.", show_alert=True)
@@ -110,7 +133,6 @@ async def handle_batting_callback(client: Client, callback_query: CallbackQuery,
         await callback_query.answer("❌ You are not the current batter!", show_alert=True)
         return
     
-    # Extract batting number
     if data == "bat_out":
         batter_number = "OUT"
         await callback_query.answer("🏏 OUT selected!")
@@ -118,14 +140,11 @@ async def handle_batting_callback(client: Client, callback_query: CallbackQuery,
         batter_number = int(data.split("_")[1])
         await callback_query.answer(f"🏏 Batting number: {batter_number}")
     
-    # Cancel batter timer
     await game_timer.cancel_batter_timer(user_id)
     
-    # Process response
     from team.commands import process_ball_response
     await process_ball_response(group_id, "batter", batter_number)
     
-    # Delete the batting message
     await message.delete()
 
 
@@ -136,48 +155,33 @@ async def handle_bowling_callback(client: Client, callback_query: CallbackQuery,
     user_id = callback_query.from_user.id
     message = callback_query.message
     
-    # Get group_id from match data (need to find which group this bowler is in)
-    # For now, we need to store bowler's group association
-    # This is a simplified version - in production, store user's active match
-    
-    # Extract bowling number
     if data.startswith("bowl_"):
         bowling_number = int(data.split("_")[1])
         await callback_query.answer(f"🎯 Bowling number: {bowling_number}")
-        
-        # Cancel bowler timer
         await game_timer.cancel_bowler_timer(user_id)
         
-        # Find which group this bowler belongs to
-        # For now, we'll need to implement a user_match mapping
-        # Simplified: search through active matches
         group_id = await find_bowler_group(user_id)
-        
         if group_id:
             from team.commands import process_ball_response
             await process_ball_response(group_id, "bowler", bowling_number)
         
-        # Delete the bowling message
         await message.delete()
 
 
 async def find_bowler_group(bowler_id: int):
     """Find which group the bowler is currently playing in"""
     # Get all active matches
-    # This is a simplified version
-    # In production, maintain a mapping of user_id -> group_id
-    from database.mongodb import db
-    # For now, return None - will be implemented properly
+    matches = await db.db.active_matches.find({}).to_list(None)
+    for match in matches:
+        if match.get("current_bowler", {}).get("user_id") == bowler_id:
+            return match.get("group_id")
     return None
 
 
 # ========== START/HELP CALLBACK HANDLERS ==========
 
 async def handle_game_instructions(client: Client, callback_query: CallbackQuery):
-    """Show game instructions menu"""
-    from handlers.start_help import game_instructions_keyboard, WELCOME_CAPTION
-    from config import GAME_INSTRUCTIONS_IMAGE_URL
-    
+    from handlers.start_help import game_instructions_keyboard
     await callback_query.message.delete()
     await callback_query.message.reply_photo(
         photo=GAME_INSTRUCTIONS_IMAGE_URL,
@@ -188,9 +192,14 @@ async def handle_game_instructions(client: Client, callback_query: CallbackQuery
 
 
 async def handle_solo_play(client: Client, callback_query: CallbackQuery):
-    """Show solo mode menu"""
-    from handlers.start_help import back_keyboard, SOLO_MODE_MESSAGE
-    
+    from handlers.start_help import back_keyboard
+    SOLO_MODE_MESSAGE = """
+🏏 **Solo Mode:**
+
+• /solo_start: Begin a solo match
+• /joingame: Join an ongoing solo match
+• /end_match: End the current game
+"""
     await callback_query.message.edit_text(
         SOLO_MODE_MESSAGE,
         reply_markup=back_keyboard()
@@ -199,9 +208,21 @@ async def handle_solo_play(client: Client, callback_query: CallbackQuery):
 
 
 async def handle_team_play(client: Client, callback_query: CallbackQuery):
-    """Show team mode menu"""
-    from handlers.start_help import team_mode_keyboard, TEAM_MODE_MESSAGE
-    
+    from handlers.start_help import team_mode_keyboard
+    TEAM_MODE_MESSAGE = """
+**Members Adding:**
+
+/add_A - add members to team A
+/add_B - add members to team B
+
+**Game Play Commands:**
+
+/startgame - to start the game
+/bowling - choose the bowling person
+/batting - choose the batting person
+/swap - to change the playing position
+/end_match - to end the current game
+"""
     await callback_query.message.edit_text(
         TEAM_MODE_MESSAGE,
         reply_markup=team_mode_keyboard()
@@ -210,9 +231,8 @@ async def handle_team_play(client: Client, callback_query: CallbackQuery):
 
 
 async def handle_auction(client: Client, callback_query: CallbackQuery):
-    """Show auction menu"""
-    from handlers.start_help import back_keyboard, AUCTION_MESSAGE
-    
+    from handlers.start_help import back_keyboard
+    AUCTION_MESSAGE = "💰 Auction Mode Commands:\n/add_cap - add auction captain\n/start_auction - start auction"
     await callback_query.message.edit_text(
         AUCTION_MESSAGE,
         reply_markup=back_keyboard()
@@ -221,10 +241,7 @@ async def handle_auction(client: Client, callback_query: CallbackQuery):
 
 
 async def handle_home(client: Client, callback_query: CallbackQuery):
-    """Return to home/start menu"""
-    from handlers.start_help import start_keyboard, WELCOME_CAPTION
-    from config import IMAGE_URL
-    
+    from handlers.start_help import start_keyboard
     await callback_query.message.delete()
     await callback_query.message.reply_photo(
         photo=IMAGE_URL,
@@ -235,11 +252,7 @@ async def handle_home(client: Client, callback_query: CallbackQuery):
 
 
 async def back_to_game_instructions(client: Client, callback_query: CallbackQuery):
-    """Back to game instructions menu"""
-    from handlers.start_help import game_instructions_keyboard, WELCOME_CAPTION
-    from config import GAME_INSTRUCTIONS_IMAGE_URL
-    from pyrogram.types import InputMediaPhoto
-    
+    from handlers.start_help import game_instructions_keyboard
     await callback_query.message.edit_media(
         media=InputMediaPhoto(
             media=GAME_INSTRUCTIONS_IMAGE_URL,
@@ -248,32 +261,3 @@ async def back_to_game_instructions(client: Client, callback_query: CallbackQuer
         reply_markup=game_instructions_keyboard()
     )
     await callback_query.answer()
-
-
-# ========== FEEDBACK CALLBACK ==========
-
-@Client.on_message(filters.command("feedback"))
-async def feedback_command(client: Client, message):
-    """Handle feedback command"""
-    feedback_text = message.text.replace("/feedback", "").strip()
-    
-    if not feedback_text:
-        await message.reply(
-            "📝 Please provide your feedback after the command.\n"
-            "Example: /feedback Great game! Love playing it."
-        )
-        return
-    
-    # Forward to owner
-    from config import OWNER_ID, OWNER_LINK
-    
-    try:
-        await client.send_message(
-            chat_id=OWNER_ID,
-            text=f"📝 **New Feedback from** {message.from_user.first_name}\n"
-                 f"👤 User: {message.from_user.id}\n"
-                 f"💬 Feedback: {feedback_text}"
-        )
-        await message.reply("✅ Thank you for your feedback! We appreciate it.")
-    except Exception as e:
-        await message.reply("❌ Could not send feedback. Please try again later.")
