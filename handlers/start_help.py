@@ -8,6 +8,9 @@ from config import (
     TEAM_START_VIDEO_URL, TEAM_BOWLING_VIDEO_URL, TEAM_BATTING_VIDEO_URL,
     TEAM_ADD_VIDEO_URL, TEAM_REMOVE_VIDEO_URL, TEAM_STARTGAME_VIDEO_URL
 )
+from database.mongodb import db
+from database.models import Match
+from team.host import DEFAULT_OVERS
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,7 +41,7 @@ Ready to play? Let's see your skills on the field!
 """
 
 TEAM_MODE_MESSAGE = """
-🌟 𝐌ᴇᴍʙᴇʀs 𝐀ᴅᴅɪɴɢ:
+🌟 **Members Adding:**
 
 /add_A - add members to team A  
 /add_B - add members to team B  
@@ -46,7 +49,7 @@ TEAM_MODE_MESSAGE = """
 Eg: /add_A 1  or /add_A @username  
 (Use the player number of your team)
 
-🌟 𝐌ᴇᴍʙᴇʀs 𝐑ᴇᴍᴏᴠɪɴɢ:
+🌟 **Members Removing:**
 
 /remove_A - remove members from team A  
 /remove_B - remove members from team B  
@@ -54,7 +57,7 @@ Eg: /add_A 1  or /add_A @username
 Eg: /remove_A 2  
 (Use the player number of your team)
 
-🌟 𝐆ᴀᴍᴇ 𝐏ʟᴀʏ 𝐂ᴏᴍᴍᴀɴᴅs:
+🌟 **Game Play Commands:**
 
 /startgame - to start the game  
 
@@ -105,6 +108,12 @@ def start_keyboard():
             InlineKeyboardButton("PLAY ZONE", url=PLAYZONE_LINK),
             InlineKeyboardButton("LIVE SCORE", url=LIVE_SCORE_LINK)
         ]
+    ])
+
+
+def group_start_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("I'm the Host 🏀", callback_data="iam_host")]
     ])
 
 
@@ -180,9 +189,10 @@ async def start_private(client: Client, message: Message):
 @Client.on_message(filters.command("start") & filters.group)
 async def start_group(client: Client, message: Message):
     await message.reply(
-        "🏏 Cricket Bot Active!\n\n"
-        "Use /create_team to start a match!\n"
-        "Use /help for all commands."
+        "New Game Alert!\n\n"
+        "Who will be the game host for this match? 😊\n\n"
+        "Start a new match or join an existing one with your friends. Just type /start in groups.",
+        reply_markup=group_start_keyboard()
     )
 
 
@@ -191,7 +201,7 @@ async def help_command(client: Client, message: Message):
     await message.reply_text(HELP_MESSAGE, reply_markup=help_keyboard())
 
 
-# ========== CALLBACKS - VIDEOS OPEN HONGE ==========
+# ========== CALLBACKS ==========
 
 @Client.on_callback_query()
 async def start_help_callbacks(client: Client, callback_query: CallbackQuery):
@@ -257,48 +267,75 @@ async def start_help_callbacks(client: Client, callback_query: CallbackQuery):
         elif data == "add_to_group":
             await callback_query.answer("Use the button below to add me to your group!")
         
-        # ========== TEAM MODE VIDEOS (Buttons pe tap karne se video khulegi) ==========
+        # I'm the Host Button (Group mein)
+        elif data == "iam_host":
+            await callback_query.answer()
+            
+            group_id = callback_query.message.chat.id
+            user_id = callback_query.from_user.id
+            user_name = callback_query.from_user.first_name
+            
+            # Check if already a game exists
+            existing_match = await db.get_match(group_id)
+            
+            if existing_match:
+                await callback_query.message.reply("❌ A game is already active in this chat!")
+            else:
+                # Create new match
+                new_match = Match(
+                    group_id=group_id,
+                    host_id=user_id,
+                    host_name=user_name,
+                    total_overs=DEFAULT_OVERS
+                )
+                await db.save_match(group_id, new_match.to_dict())
+                
+                await callback_query.message.reply(
+                    f"🎮 {user_name} is now the game host! Game host can create teams now by using /create_team. Let's get the match started! 😍❤️"
+                )
+        
+        # ========== TEAM MODE VIDEOS ==========
         
         elif data == "team_start":
             await callback_query.answer("Opening START guide...")
             await callback_query.message.reply_video(
                 video=TEAM_START_VIDEO_URL,
-                caption="📌 START - Use /create_team in your group to begin the match!"
+                caption="START - Use /create_team in your group to begin the match!"
             )
         
         elif data == "team_add":
             await callback_query.answer("Opening ADD guide...")
             await callback_query.message.reply_video(
                 video=TEAM_ADD_VIDEO_URL,
-                caption="📌 ADD - Use /add_A and /add_B commands to add players!"
+                caption="ADD - Use /add_A and /add_B commands to add players!"
             )
         
         elif data == "team_remove":
             await callback_query.answer("Opening REMOVE guide...")
             await callback_query.message.reply_video(
                 video=TEAM_REMOVE_VIDEO_URL,
-                caption="📌 REMOVE - Use /remove_A and /remove_B commands to remove players!"
+                caption="REMOVE - Use /remove_A and /remove_B commands to remove players!"
             )
         
         elif data == "team_startgame":
             await callback_query.answer("Opening START GAME guide...")
             await callback_query.message.reply_video(
                 video=TEAM_STARTGAME_VIDEO_URL,
-                caption="📌 START GAME - Use /startgame command when both teams are ready!"
+                caption="START GAME - Use /startgame command when both teams are ready!"
             )
         
         elif data == "team_bowling":
             await callback_query.answer("Opening BOWLING guide...")
             await callback_query.message.reply_video(
                 video=TEAM_BOWLING_VIDEO_URL,
-                caption="📌 BOWLING - Use /bowling command to select the bowler!"
+                caption="BOWLING - Use /bowling command to select the bowler!"
             )
         
         elif data == "team_batting":
             await callback_query.answer("Opening BATTING guide...")
             await callback_query.message.reply_video(
                 video=TEAM_BATTING_VIDEO_URL,
-                caption="📌 BATTING - Use /batting command to select the batsman!"
+                caption="BATTING - Use /batting command to select the batsman!"
             )
         
         else:
