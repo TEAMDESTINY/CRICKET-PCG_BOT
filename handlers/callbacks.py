@@ -223,18 +223,39 @@ async def handle_solo_play(client: Client, callback_query: CallbackQuery):
 async def handle_team_play(client: Client, callback_query: CallbackQuery):
     from handlers.start_help import team_mode_keyboard
     TEAM_MODE_MESSAGE = """
-**Members Adding:**
+🌟 𝐌ᴇᴍʙᴇʀs 𝐀ᴅᴅɪɴɢ:
 
-/add_A - add members to team A
-/add_B - add members to team B
+/add_A - add members to team A  
+/add_B - add members to team B  
 
-**Game Play Commands:**
+Eg: /add_A 1  or /add_A @username  
+(Use the player number of your team)
 
-/startgame - to start the game
-/bowling - choose the bowling person
-/batting - choose the batting person
-/swap - to change the playing position
-/end_match - to end the current game
+🌟 𝐌ᴇᴍʙᴇʀs 𝐑ᴇᴍᴏᴠɪɴɢ:
+
+/remove_A - remove members from team A  
+/remove_B - remove members from team B  
+
+Eg: /remove_A 2  
+(Use the player number of your team)
+
+🌟 𝐆ᴀᴍᴇ 𝐏ʟᴀʏ 𝐂ᴏᴍᴍᴀɴᴅs:
+
+/startgame - to start the game  
+
+/bowling - choose the bowling person of team A or B  
+Eg: /bowling 3  
+(Use the team A or B player number for bowling)
+
+/batting - choose the batting person of team A or B  
+Eg: /batting 4  
+(Use the team A or B player number for batting)
+
+/swap - to change the playing position of the current team  
+
+/end_match - to end the current game  
+
+/Feedback - give your feedback about the game
 """
     await callback_query.message.edit_text(
         TEAM_MODE_MESSAGE,
