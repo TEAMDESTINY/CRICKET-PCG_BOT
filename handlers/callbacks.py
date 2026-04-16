@@ -15,6 +15,20 @@ from config import (
 import asyncio
 
 
+# ========== DEFINE WELCOME_CAPTION HERE ==========
+WELCOME_CAPTION = """
+🏏 **Welcome to Cricket Bot!**
+
+🔴 **Live Cricket Scores:** Get real-time updates on live matches. Use /matches to see live scores.
+
+🎮 **Manage Your Team:** Strategize, set your lineup, and play the game just like a pro captain.
+
+🗽 **1 VS 1:** Find one vs one match /1v1
+
+Use /help to learn more about the game.
+"""
+
+
 # ========== MAIN CALLBACK HANDLER ==========
 
 @Client.on_callback_query()
@@ -170,7 +184,6 @@ async def handle_bowling_callback(client: Client, callback_query: CallbackQuery,
 
 async def find_bowler_group(bowler_id: int):
     """Find which group the bowler is currently playing in"""
-    # Get all active matches
     matches = await db.db.active_matches.find({}).to_list(None)
     for match in matches:
         if match.get("current_bowler", {}).get("user_id") == bowler_id:
