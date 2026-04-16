@@ -10,8 +10,10 @@ from config import (
     OWNER_LINK, BOT_USERNAME, WICKET_VIDEO_URL, OUT_VIDEO_URL,
     IMAGE_URL, GAME_INSTRUCTIONS_IMAGE_URL,
     TEAM_START_VIDEO_URL, TEAM_BOWLING_VIDEO_URL, TEAM_BATTING_VIDEO_URL,
-    TEAM_ADD_VIDEO_URL, TEAM_REMOVE_VIDEO_URL, TEAM_STARTGAME_VIDEO_URL
+    TEAM_ADD_VIDEO_URL, TEAM_REMOVE_VIDEO_URL, TEAM_STARTGAME_VIDEO_URL,
+    DEFAULT_OVERS
 )
+from database.models import Match
 import asyncio
 
 
@@ -76,7 +78,39 @@ async def handle_callbacks(client: Client, callback_query: CallbackQuery):
     elif data == "add_to_group":
         await callback_query.answer("➕ Use the button below to add me to your group!")
     
-    # ========== TEAM MODE VIDEO CALLBACKS (Video open honge) ==========
+    # ========== I'M THE HOST BUTTON (Group mein) ==========
+    elif data == "iam_host":
+        await callback_query.answer()
+        
+        group_id = callback_query.message.chat.id
+        user_id_host = callback_query.from_user.id
+        user_name = callback_query.from_user.first_name
+        
+        # Create clickable mention
+        mention = f"[{user_name}](tg://user?id={user_id_host})"
+        
+        # Check if already a game exists
+        existing_match = await db.get_match(group_id)
+        
+        if existing_match:
+            await callback_query.message.reply("❌ A game is already active in this chat!")
+        else:
+            # Create new match
+            new_match = Match(
+                group_id=group_id,
+                host_id=user_id_host,
+                host_name=user_name,
+                total_overs=DEFAULT_OVERS
+            )
+            await db.save_match(group_id, new_match.to_dict())
+            
+            # Send message with clickable name (exactly like screenshot)
+            await callback_query.message.reply(
+                f"> {mention}\n\n"
+                f"> {mention} is now the game host! Game host can create teams now by using /create_team. Let's get the match started! 😍❤️"
+            )
+    
+    # ========== TEAM MODE VIDEO CALLBACKS ==========
     elif data == "team_start":
         await callback_query.answer("🎬 Opening START guide...")
         await callback_query.message.reply_video(
@@ -120,7 +154,7 @@ async def handle_callbacks(client: Client, callback_query: CallbackQuery):
         )
     
     else:
-        await callback_query.answer("⚙️ Feature coming soon!")
+        await callback_query.answer("⚙️ Feature coming soon!", show_alert=True)
 
 
 # ========== BATTING CALLBACK HANDLER ==========
