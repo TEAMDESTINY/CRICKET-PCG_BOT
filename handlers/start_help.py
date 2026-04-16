@@ -10,7 +10,7 @@ from config import (
 )
 from database.mongodb import db
 from database.models import Match
-from team.host import DEFAULT_OVERS
+from config import DEFAULT_OVERS
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -275,6 +275,9 @@ async def start_help_callbacks(client: Client, callback_query: CallbackQuery):
             user_id = callback_query.from_user.id
             user_name = callback_query.from_user.first_name
             
+            # Create clickable mention
+            mention = f"[{user_name}](tg://user?id={user_id})"
+            
             # Check if already a game exists
             existing_match = await db.get_match(group_id)
             
@@ -290,8 +293,10 @@ async def start_help_callbacks(client: Client, callback_query: CallbackQuery):
                 )
                 await db.save_match(group_id, new_match.to_dict())
                 
+                # Send message with clickable name (exactly like screenshot)
                 await callback_query.message.reply(
-                    f"🎮 {user_name} is now the game host! Game host can create teams now by using /create_team. Let's get the match started! 😍❤️"
+                    f"> {mention}\n\n"
+                    f"> {mention} is now the game host! Game host can create teams now by using /create_team. Let's get the match started! 😍❤️"
                 )
         
         # ========== TEAM MODE VIDEOS ==========
