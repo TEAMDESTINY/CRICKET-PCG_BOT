@@ -8,7 +8,6 @@ from team.messages import (
     NO_ACTIVE_GAME, END_MATCH_SUCCESS
 )
 from config import DEFAULT_OVERS
-import asyncio
 
 
 # ========== CREATE TEAM COMMAND ==========
@@ -49,13 +48,13 @@ async def create_team(client: Client, message: Message):
     )
 
 
-# ========== END MATCH COMMAND ==========
+# ========== END MATCH COMMAND (Direct, no confirmation) ==========
 
 @Client.on_message(filters.command("end_match") & filters.group)
 @host_only
 async def end_match(client: Client, message: Message):
     """
-    /end_match - End the current game (host only)
+    /end_match - End the current game directly (host only)
     """
     group_id = message.chat.id
     
@@ -66,53 +65,13 @@ async def end_match(client: Client, message: Message):
         await message.reply(NO_ACTIVE_GAME)
         return
     
-    # Send confirmation prompt
-    confirm_msg = await message.reply(
-        "⚠️ **Are you sure you want to end the current match?**\n\n"
-        "Type /end_match_confirm within 10 seconds to confirm.\n"
-        "Type /cancel to cancel."
-    )
+    # Save match to history
+    await db.save_to_history(match)
     
-    # Wait for confirmation
-    def is_confirmation(msg):
-        return (msg.chat.id == group_id and 
-                msg.from_user.id == match["host"]["user_id"] and
-                msg.text in ["/end_match_confirm", "/cancel"])
+    # Delete active match
+    await db.delete_match(group_id)
     
-    try:
-        confirmation = await client.wait_for_message(
-            timeout=10,
-            filters=filters.create(is_confirmation)
-        )
-        
-        if confirmation.text == "/end_match_confirm":
-            # Save match to history before deleting
-            await db.save_to_history(match)
-            
-            # Delete active match
-            await db.delete_match(group_id)
-            
-            await confirm_msg.edit(END_MATCH_SUCCESS)
-        else:
-            await confirm_msg.edit("✅ Match end cancelled. Continue playing!")
-            
-    except asyncio.TimeoutError:
-        await confirm_msg.edit("⏰ Timeout! Match end cancelled.")
-
-
-@Client.on_message(filters.command("end_match_confirm") & filters.group)
-async def end_match_confirm(client: Client, message: Message):
-    """Handle end match confirmation (triggered by wait_for_message)"""
-    # This is handled by the wait_for_message above
-    # Just pass through
-    pass
-
-
-@Client.on_message(filters.command("cancel") & filters.group)
-async def cancel_end_match(client: Client, message: Message):
-    """Cancel end match command"""
-    # This is handled by the wait_for_message above
-    pass
+    await message.reply("✅ Match ended successfully!\n\nUse /create_team to start a new match.")
 
 
 # ========== CHECK TEAMS STATUS ==========
