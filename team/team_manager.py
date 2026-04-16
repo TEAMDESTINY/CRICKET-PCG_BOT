@@ -20,10 +20,7 @@ import re
 async def get_user_info(client, username: str):
     """Get user info from username or user_id"""
     try:
-        # Remove @ if present
         clean_username = username.lstrip('@')
-        
-        # Try to get user by username
         user = await client.get_users(clean_username)
         return user
     except Exception:
@@ -45,12 +42,10 @@ def format_player_list(players):
 
 async def add_single_player(client, team_data, player_number, username, user_id, is_captain=False):
     """Add a single player to team"""
-    # Check if player already in this team
     for p in team_data.get("players", []):
         if p.get("user_id") == user_id:
             return False, "already_in_team", None
     
-    # Create new player
     new_player = {
         "number": player_number,
         "username": username,
@@ -74,11 +69,6 @@ async def add_single_player(client, team_data, player_number, username, user_id,
 @Client.on_message(filters.command("add_A") & filters.group)
 @host_only
 async def add_to_team_a(client: Client, message: Message):
-    """
-    /add_A @username - Add single player to Team A
-    /add_A @user1 @user2 @user3 - Mass add players to Team A
-    /add_A 1 - Add by player number
-    """
     await add_to_team(client, message, "A")
 
 
@@ -87,11 +77,6 @@ async def add_to_team_a(client: Client, message: Message):
 @Client.on_message(filters.command("add_B") & filters.group)
 @host_only
 async def add_to_team_b(client: Client, message: Message):
-    """
-    /add_B @username - Add single player to Team B
-    /add_B @user1 @user2 @user3 - Mass add players to Team B
-    /add_B 1 - Add by player number
-    """
     await add_to_team(client, message, "B")
 
 
@@ -112,8 +97,15 @@ async def add_to_team(client: Client, message: Message, team_letter: str):
         await message.reply(NO_ACTIVE_GAME)
         return
     
-    team_key = f"team_{team_letter.lower()}"
-    other_team_key = f"team_{'B' if team_letter == 'A' else 'A'}"
+    # Fix: Use lowercase keys
+    team_key = f"team_{team_letter.lower()}"  # "team_a" or "team_b"
+    other_team_key = f"team_{'b' if team_letter == 'A' else 'a'}"  # "team_b" or "team_a"
+    
+    # Initialize if keys don't exist
+    if team_key not in match:
+        match[team_key] = {"name": f"Team {team_letter}", "players": [], "score": 0, "wickets": 0, "overs": 0.0}
+    if other_team_key not in match:
+        match[other_team_key] = {"name": f"Team {'B' if team_letter == 'A' else 'A'}", "players": [], "score": 0, "wickets": 0, "overs": 0.0}
     
     team_data = match[team_key]
     other_team_data = match[other_team_key]
@@ -129,12 +121,9 @@ async def add_to_team(client: Client, message: Message, team_letter: str):
     # Extract usernames from args
     usernames = []
     for arg in args[1:]:
-        # Check if it's a number (player number) or username
         if re.match(r'^\d+$', arg):
-            # Add by number - need to find user? For now treat as username
             usernames.append(arg)
         else:
-            # Clean username
             clean = arg.lstrip('@')
             usernames.append(clean)
     
@@ -149,7 +138,6 @@ async def add_to_team(client: Client, message: Message, team_letter: str):
     next_number = len(current_players) + 1
     
     for username in usernames:
-        # Check if team is full
         if len(team_data["players"]) >= max_players:
             results["team_full"] = True
             break
@@ -180,7 +168,6 @@ async def add_to_team(client: Client, message: Message, team_letter: str):
         user = await get_user_info(client, username)
         
         if user:
-            # Check if first player becomes captain
             is_captain = len(team_data["players"]) == 0
             
             new_player = {
@@ -212,7 +199,6 @@ async def add_to_team(client: Client, message: Message, team_letter: str):
     
     # Send response
     if len(usernames) == 1 and results["success"]:
-        # Single add - show team display
         player_added = results["success"][0]
         player_list = format_player_list(team_data["players"])
         
@@ -226,11 +212,10 @@ async def add_to_team(client: Client, message: Message, team_letter: str):
             )
         )
     else:
-        # Mass add - show report
         success_list = [f"✅ {p['name']} (#{p['number']}){' [🧢]' if p['is_captain'] else ''}" 
                        for p in results["success"]]
         already_list = [f"⚠️ {name}: Already in Team {team_letter}" for name in results["already_in_team"]]
-        other_list = [f"⚠️ {name}: Already in Team {other_team_key[-1]}" for name in results["already_in_other"]]
+        other_list = [f"⚠️ {name}: Already in Team {other_team_key[-1].upper()}" for name in results["already_in_other"]]
         not_found_list = [f"❌ {name}: User not found" for name in results["not_found"]]
         
         all_results = success_list + already_list + other_list + not_found_list
@@ -251,7 +236,6 @@ async def add_to_team(client: Client, message: Message, team_letter: str):
 @Client.on_message(filters.command("remove_A") & filters.group)
 @host_only
 async def remove_from_team_a(client: Client, message: Message):
-    """/remove_A 1 - Remove player number 1 from Team A"""
     await remove_from_team(client, message, "A")
 
 
@@ -260,7 +244,6 @@ async def remove_from_team_a(client: Client, message: Message):
 @Client.on_message(filters.command("remove_B") & filters.group)
 @host_only
 async def remove_from_team_b(client: Client, message: Message):
-    """/remove_B 1 - Remove player number 1 from Team B"""
     await remove_from_team(client, message, "B")
 
 
@@ -275,16 +258,19 @@ async def remove_from_team(client: Client, message: Message, team_letter: str):
                            f"Mass remove: /remove_{team_letter} 1,2,3")
         return
     
-    # Get current match
     match = await db.get_match(group_id)
     if not match:
         await message.reply(NO_ACTIVE_GAME)
         return
     
     team_key = f"team_{team_letter.lower()}"
+    
+    if team_key not in match:
+        await message.reply(f"❌ Team {team_letter} not found!")
+        return
+    
     team_data = match[team_key]
     
-    # Parse player numbers (supports comma separated)
     numbers_str = args[1]
     player_numbers = []
     
@@ -307,7 +293,6 @@ async def remove_from_team(client: Client, message: Message, team_letter: str):
     }
     
     for player_num in player_numbers:
-        # Find player by number
         player_found = None
         for player in team_data.get("players", []):
             if player.get("number") == player_num:
@@ -318,16 +303,13 @@ async def remove_from_team(client: Client, message: Message, team_letter: str):
             team_data["players"].remove(player_found)
             results["success"].append({"name": player_found["username"], "number": player_num})
             
-            # Re-number remaining players
             for idx, player in enumerate(team_data["players"], 1):
                 player["number"] = idx
         else:
             results["not_found"].append(player_num)
     
-    # Save to database
     await db.save_match(group_id, match)
     
-    # Send response
     if len(player_numbers) == 1 and results["success"]:
         player_removed = results["success"][0]
         player_list = format_player_list(team_data["players"])
@@ -362,7 +344,6 @@ async def remove_from_team(client: Client, message: Message, team_letter: str):
 
 @Client.on_message(filters.command("show_teams") & filters.group)
 async def show_teams_command(client: Client, message: Message):
-    """/show_teams - Display current teams"""
     group_id = message.chat.id
     match = await db.get_match(group_id)
     
