@@ -18,9 +18,16 @@ logger = logging.getLogger(__name__)
 # ========== MESSAGES ==========
 
 WELCOME_CAPTION = """
-🏏 **𝐖ᴇʟᴄᴏᴍᴇ 𝐭ᴏ 𝐂ʀɪᴄᴋᴇᴛ 𝐌ᴀsᴛᴇʀ 𝐁ᴏᴛ!**
+🏏 𝐖ᴇʟᴄᴏᴍᴇ 𝐭ᴏ 𝐂ʀɪᴄᴋᴇᴛ 𝐁ᴏᴛ!
 
-Cricket Game Bot provide Solo play and Team play option available.
+
+🔴 𝐋ɪᴠᴇ 𝐂ʀɪᴄᴋᴇᴛ 𝐒ᴄᴏʀᴇs: Get real-time updates on live matches. Use /matches to see live scores.
+
+🎮 𝐌ᴀɴᴀɢᴇ 𝐘ᴏᴜʀ 𝐓ᴇᴀᴍ: Strategize, set your lineup, and play the game just like a pro captain.
+
+🗽 1_VS_1 : Find one vs one match /1v1
+
+Use /help to learn more about the game.
 """
 
 SOLO_MODE_MESSAGE = """
