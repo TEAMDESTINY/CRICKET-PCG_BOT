@@ -207,11 +207,18 @@ async def handle_game_instructions(client: Client, callback_query: CallbackQuery
 async def handle_solo_play(client: Client, callback_query: CallbackQuery):
     from handlers.start_help import back_keyboard
     SOLO_MODE_MESSAGE = """
-🏏 **Solo Mode:**
+🏏 Solo Mode:
 
-• /solo_start: Begin a solo match
-• /joingame: Join an ongoing solo match
-• /end_match: End the current game
+- /start: Begin a solo match. Use the Solo button.
+  - Next: Select your bowling mode by clicking Choose Random or Group Volunteer.
+
+- /joingame: Join an ongoing solo match.
+
+- /end_match: End the current game.
+
+- /Feedback: Share your feedback about the game and help us improve!
+
+Ready to play? Let's see your skills on the field! 🌟
 """
     await callback_query.message.edit_text(
         SOLO_MODE_MESSAGE,
