@@ -84,19 +84,20 @@ AUCTION_MESSAGE = """
 
 
 # ========== KEYBOARDS ==========
-
 def start_keyboard():
-    """Start command ke neeche buttons (DM mein)"""
+    """Start command ke neeche buttons (DM mein) - Exactly like screenshot"""
     logger.debug("Creating start_keyboard")
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("Updates", url=UPDATES_LINK),
-            InlineKeyboardButton("Support", url=SUPPORT_LINK),
-            InlineKeyboardButton("Play Zone", url=PLAYZONE_LINK),
-            InlineKeyboardButton("Live Score", url=LIVE_SCORE_LINK)
+            InlineKeyboardButton("UPDATES", url=UPDATES_LINK),
+            InlineKeyboardButton("SUPPORT", url=SUPPORT_LINK)
         ],
         [
-            InlineKeyboardButton("Add me to group", url=f"https://t.me/{BOT_USERNAME}?startgroup=true")
+            InlineKeyboardButton("ADD ME TO YOUR GROUP!", url=f"https://t.me/{BOT_USERNAME}?startgroup=true")
+        ],
+        [
+            InlineKeyboardButton("PLAY ZONE", url=PLAYZONE_LINK),
+            InlineKeyboardButton("LIVE SCORE", url=LIVE_SCORE_LINK)
         ]
     ])
 
